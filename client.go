@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/aws/aws-lambda-go/lambda"
 	gomail "gopkg.in/mail.v2"
@@ -15,6 +16,7 @@ import (
 const (
 	WATCH_LATER_URL = "https://api.bilibili.com/x/v2/history/toview"
 	VIDEOS_PER_MAIL = 5
+	SENDER_EMAIL    = "stevenjxhc@gmail.com"
 )
 
 type video struct {
@@ -100,9 +102,9 @@ func sendMail(videos []video) error {
 	message := gomail.NewMessage()
 
 	// Set email headers
-	message.SetHeader("From", "stevenjxhc@gmail.com")
+	message.SetHeader("From", SENDER_EMAIL)
 	message.SetHeader("To", "stevenjxhc@gmail.com")
-	message.SetHeader("Subject", "Just testing")
+	message.SetHeader("Subject", "Don't Let These Videos Collect Dust!")
 
 	// Build body
 	body := `
@@ -117,8 +119,11 @@ func sendMail(videos []video) error {
 					<a href="bilibili.com/video/%s">
                 		<img src="%s" alt="Video thumbnail" height="80px" width="120px">
             		</a>
-					<h3 style="margin-left: 40px;">%s</h3>
-				</div>`, video.Bvid, video.Pic, video.Title)
+					<div>
+						<h3 style="margin-left: 40px;">%s</h3>
+						<p style="margin-left: 40px;">Added on %s</p>
+					</div>
+				</div>`, video.Bvid, video.Pic, video.Title, time.Unix(video.TimeAdded, 0).Format("2006-01-02"))
 
 		body += "<br />"
 	}
