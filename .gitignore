@@ -1,2 +1,6 @@
 .DS_STORE
 config.env
+
+# lambda deployment
+bootstrap
+bili-reminder.zip
