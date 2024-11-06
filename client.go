@@ -6,7 +6,9 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 
+	"github.com/aws/aws-lambda-go/lambda"
 	gomail "gopkg.in/mail.v2"
 )
 
@@ -35,34 +37,37 @@ type watchLaterResponse struct {
 }
 
 func main() {
-	cfg, err := loadConfig(".")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	sendReminderEmail(cfg)
+	lambda.Start(sendReminderEmail)
 }
 
-func sendReminderEmail(cfg config) {
-	videos, err := fetchWatchLater(cfg)
+func sendReminderEmail() error {
+	videos, err := fetchWatchLater()
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	if len(videos) > 0 {
-		err = sendMail(videos, cfg)
+		err = sendMail(videos)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 	}
+
+	return nil
 }
 
-func fetchWatchLater(cfg config) ([]video, error) {
+func fetchWatchLater() ([]video, error) {
 	req, err := http.NewRequest("GET", WATCH_LATER_URL, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
-	req.Header.Set("Cookie", fmt.Sprintf("SESSDATA=%s", cfg.Sessdata))
+
+	// Set cookie
+	sessdataCookie := os.Getenv("SESSDATA")
+	if sessdataCookie == "" {
+		return nil, fmt.Errorf("SESSDATA environment variable not set")
+	}
+	req.Header.Set("Cookie", fmt.Sprintf("SESSDATA=%s", sessdataCookie))
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -90,7 +95,7 @@ func fetchWatchLater(cfg config) ([]video, error) {
 	return videos, nil
 }
 
-func sendMail(videos []video, cfg config) error {
+func sendMail(videos []video) error {
 	// Create a new message
 	message := gomail.NewMessage()
 
@@ -127,7 +132,11 @@ func sendMail(videos []video, cfg config) error {
 	message.SetBody("text/html", body)
 
 	// Set up the SMTP dialer
-	dialer := gomail.NewDialer("smtp.gmail.com", 587, "stevenjxhc@gmail.com", cfg.GmailPassword)
+	gmailPassword := os.Getenv("GMAIL_PASSWORD")
+	if gmailPassword == "" {
+		return fmt.Errorf("GMAIL_PASSWORD environment variable not set")
+	}
+	dialer := gomail.NewDialer("smtp.gmail.com", 587, "stevenjxhc@gmail.com", gmailPassword)
 
 	// Send the email
 	if err := dialer.DialAndSend(message); err != nil {
