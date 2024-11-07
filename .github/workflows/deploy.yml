@@ -2,23 +2,25 @@ name: Update Lambda Function
 
 on:
   workflow_run:
-    workflows: ['Run Unit Tests']
+    workflows: ["Run Unit Tests"]
     types: [completed]
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
+    permissions:
+      id-token: "write"
+
     steps:
-    - name: Checkout repo
-      uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v4.0.2
-      with:
-        role-to-assume: arn:aws:iam::381491881560:role/bili-reminder-lambda-execute
-        aws-region: us-east-2
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4.0.2
+        with:
+          role-to-assume: arn:aws:iam::381491881560:role/bili-reminder-lambda-execute
+          aws-region: us-east-2
 
-    - name: Build and update Lambda function
-      run: make
+      - name: Build and update Lambda function
+        run: make
